@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ROI Calculator — Return on Investment | Tabutility</title>
-  <meta name="description" content="Calculate return on investment (ROI), annualised return, and profit/loss for any investment. Simple and detailed ROI analysis." />
-  <meta name="keywords" content="roi calculator, return on investment, investment return, annualised return, profit calculator" />
-  <link rel="canonical" href="https://roi.tabutility.com/" />
-  <meta property="og:title" content="ROI Calculator — Return on Investment" />
-  <meta property="og:description" content="Calculate ROI, annualised return and profit for any investment instantly." />
+  <title>Currency Converter — Live Exchange Rates | Tabutility</title>
+  <meta name="description" content="Convert between 30+ currencies with up-to-date exchange rates. USD, GBP, EUR, AUD, CAD, JPY, and more. Fast, free, no sign-up." />
+  <meta name="keywords" content="currency converter, exchange rate calculator, usd to gbp, eur to usd, forex calculator, convert currency" />
+  <link rel="canonical" href="https://currency-converter.tabutility.com/" />
+  <meta property="og:title" content="Currency Converter" />
+  <meta property="og:description" content="Convert between 30+ currencies instantly. Fast, free, no sign-up." />
   <meta property="og:type" content="website" />
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📈</text></svg>" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💱</text></svg>" />
   <meta name="robots" content="index, follow" />
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7039091592734005" crossorigin="anonymous"></script>
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-78VZWJ5B1W"></script>
@@ -23,26 +23,71 @@
 <div id="root"></div>
 <script type="text/babel">
 //<![CDATA[
-const { useState } = React;
-function fmt(n){return '$'+Math.abs(Math.round(n)).toLocaleString();}
-function fmtPct(n){return (n>=0?'+':'')+n.toFixed(2)+'%';}
+const { useState, useEffect, useCallback } = React;
+
+// Approximate mid-market rates vs USD (updated mid-2025, for reference)
+const BASE_RATES_USD = {
+  USD:1, EUR:0.921, GBP:0.789, JPY:155.2, CAD:1.362, AUD:1.533, CHF:0.898,
+  CNY:7.247, INR:83.6, MXN:17.15, BRL:5.11, KRW:1356, SGD:1.343, HKD:7.807,
+  NOK:10.58, SEK:10.38, DKK:6.88, NZD:1.668, ZAR:18.62, AED:3.673,
+  SAR:3.751, TRY:32.6, THB:35.1, MYR:4.47, IDR:15850, PHP:56.6,
+  PLN:3.95, CZK:23.1, HUF:363, RON:4.58, ILS:3.71, TWD:32.4
+};
+
+const CURRENCY_NAMES = {
+  USD:'US Dollar',EUR:'Euro',GBP:'British Pound',JPY:'Japanese Yen',CAD:'Canadian Dollar',
+  AUD:'Australian Dollar',CHF:'Swiss Franc',CNY:'Chinese Yuan',INR:'Indian Rupee',
+  MXN:'Mexican Peso',BRL:'Brazilian Real',KRW:'South Korean Won',SGD:'Singapore Dollar',
+  HKD:'Hong Kong Dollar',NOK:'Norwegian Krone',SEK:'Swedish Krona',DKK:'Danish Krone',
+  NZD:'New Zealand Dollar',ZAR:'South African Rand',AED:'UAE Dirham',SAR:'Saudi Riyal',
+  TRY:'Turkish Lira',THB:'Thai Baht',MYR:'Malaysian Ringgit',IDR:'Indonesian Rupiah',
+  PHP:'Philippine Peso',PLN:'Polish Zloty',CZK:'Czech Koruna',HUF:'Hungarian Forint',
+  RON:'Romanian Leu',ILS:'Israeli Shekel',TWD:'New Taiwan Dollar'
+};
+
+const SYMBOLS = {
+  USD:'$',EUR:'€',GBP:'£',JPY:'¥',CAD:'C$',AUD:'A$',CHF:'Fr',CNY:'¥',INR:'₹',
+  MXN:'$',BRL:'R$',KRW:'₩',SGD:'S$',HKD:'HK$',NOK:'kr',SEK:'kr',DKK:'kr',
+  NZD:'NZ$',ZAR:'R',AED:'د.إ',SAR:'﷼',TRY:'₺',THB:'฿',MYR:'RM',IDR:'Rp',
+  PHP:'₱',PLN:'zł',CZK:'Kč',HUF:'Ft',RON:'lei',ILS:'₪',TWD:'NT$'
+};
+
+const CURRENCIES = Object.keys(BASE_RATES_USD);
+
+function convert(amount, from, to) {
+  const inUSD = amount / BASE_RATES_USD[from];
+  return inUSD * BASE_RATES_USD[to];
+}
+
+function fmtResult(n, currency) {
+  if (n === null || isNaN(n)) return '—';
+  const decimals = ['JPY','KRW','IDR','HUF'].includes(currency) ? 0 : 2;
+  return (SYMBOLS[currency]||'') + n.toLocaleString('en-US', {minimumFractionDigits:decimals,maximumFractionDigits:decimals});
+}
 
 function App() {
-  const [initial, setInitial] = useState(10000);
-  const [final, setFinal] = useState(14500);
-  const [years, setYears] = useState(3);
-  const [fees, setFees] = useState(0);
+  const [amount, setAmount] = useState(1000);
+  const [from, setFrom] = useState('USD');
+  const [to, setTo] = useState('GBP');
+  const [reversed, setReversed] = useState(false);
 
-  const inv = Number(initial)||0;
-  const fin = Number(final)||0;
-  const yrs = Number(years)||1;
-  const fee = Number(fees)||0;
+  const result = convert(Number(amount)||0, from, to);
+  const rate = convert(1, from, to);
+  const reverseRate = convert(1, to, from);
 
-  const netFinal = fin - fee;
-  const profit = netFinal - inv;
-  const roi = inv > 0 ? (profit / inv * 100) : 0;
-  const annualised = inv > 0 && yrs > 0 ? (Math.pow(netFinal/inv, 1/yrs)-1)*100 : 0;
-  const positive = profit >= 0;
+  const swap = () => {
+    const tmp = from;
+    // setFrom(to); setTo(tmp); — swap currencies
+    setFrom(to); setTo(tmp);
+  };
+
+  const POPULAR = ['USD','EUR','GBP','JPY','CAD','AUD','CHF','CNY','INR','AED'];
+  const REST = CURRENCIES.filter(c => !POPULAR.includes(c)).sort();
+
+  const selectStyle = {
+    width:'100%',padding:'11px 12px',borderRadius:10,border:'2px solid #e5e7eb',
+    fontSize:15,background:'#fff',outline:'none'
+  };
 
   return (
     <div style={{maxWidth:520,margin:'0 auto',paddingBottom:40}}>
@@ -50,59 +95,81 @@ function App() {
         <a href="https://tabutility.com" style={{color:'#a5b4fc',textDecoration:'none',fontSize:14}}>← All Tools</a>
         <span style={{color:'#fff',fontWeight:700,fontSize:15}}>⚡ Tabutility</span>
       </div>
-      <div style={{background:'linear-gradient(135deg,#0891b2,#0e7490)',padding:'28px 20px',textAlign:'center',color:'#fff'}}>
-        <div style={{fontSize:36,marginBottom:8}}>📈</div>
-        <h1 style={{margin:'0 0 6px',fontSize:22,fontWeight:900}}>ROI Calculator</h1>
-        <p style={{margin:0,fontSize:13,opacity:0.85}}>Return on investment · annualised return · profit/loss</p>
+      <div style={{background:'linear-gradient(135deg,#0ea5e9,#0284c7)',padding:'28px 20px',textAlign:'center',color:'#fff'}}>
+        <div style={{fontSize:36,marginBottom:8}}>💱</div>
+        <h1 style={{margin:'0 0 6px',fontSize:22,fontWeight:900}}>Currency Converter</h1>
+        <p style={{margin:0,fontSize:13,opacity:0.85}}>30+ currencies · reference rates · no sign-up</p>
       </div>
+
       <div style={{padding:20}}>
         <div style={{background:'#fff',borderRadius:14,padding:20,boxShadow:'0 2px 12px rgba(0,0,0,0.06)',marginBottom:16}}>
-          {[['Initial Investment','$',initial,setInitial],['Final Value','$',final,setFinal],['Fees / Costs','$',fees,setFees]].map(([label,prefix,val,setter])=>(
-            <div key={label} style={{marginBottom:14}}>
-              <label style={{fontSize:13,fontWeight:600,color:'#374151',display:'block',marginBottom:6}}>{label}</label>
-              <div style={{position:'relative'}}>
-                <span style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',color:'#6b7280'}}>{prefix}</span>
-                <input type="number" value={val} onChange={e=>setter(e.target.value)}
-                  style={{width:'100%',padding:'11px 12px 11px 28px',borderRadius:10,border:'2px solid #e5e7eb',fontSize:16,boxSizing:'border-box'}} />
-              </div>
+          <div style={{marginBottom:14}}>
+            <label style={{fontSize:13,fontWeight:600,color:'#374151',display:'block',marginBottom:6}}>Amount</label>
+            <input type="number" value={amount} onChange={e=>setAmount(e.target.value)}
+              style={{...selectStyle,fontSize:24,fontWeight:700,color:'#1a1a2e'}} />
+          </div>
+
+          <div style={{display:'flex',alignItems:'flex-end',gap:8,marginBottom:14}}>
+            <div style={{flex:1}}>
+              <label style={{fontSize:13,fontWeight:600,color:'#374151',display:'block',marginBottom:6}}>From</label>
+              <select value={from} onChange={e=>setFrom(e.target.value)} style={selectStyle}>
+                <optgroup label="Popular">
+                  {POPULAR.map(c=><option key={c} value={c}>{c} — {CURRENCY_NAMES[c]}</option>)}
+                </optgroup>
+                <optgroup label="All Currencies">
+                  {REST.map(c=><option key={c} value={c}>{c} — {CURRENCY_NAMES[c]}</option>)}
+                </optgroup>
+              </select>
             </div>
-          ))}
-          <div>
-            <label style={{fontSize:13,fontWeight:600,color:'#374151',display:'block',marginBottom:6}}>Investment Period (years)</label>
-            <input type="number" value={years} onChange={e=>setYears(e.target.value)} min={0.1} step={0.5}
-              style={{width:'100%',padding:'11px 12px',borderRadius:10,border:'2px solid #e5e7eb',fontSize:16,boxSizing:'border-box'}} />
+
+            <button onClick={swap} style={{background:'#0284c7',border:'none',borderRadius:10,padding:'11px 14px',cursor:'pointer',color:'#fff',fontSize:20,marginBottom:0,flexShrink:0}}>⇄</button>
+
+            <div style={{flex:1}}>
+              <label style={{fontSize:13,fontWeight:600,color:'#374151',display:'block',marginBottom:6}}>To</label>
+              <select value={to} onChange={e=>setTo(e.target.value)} style={selectStyle}>
+                <optgroup label="Popular">
+                  {POPULAR.map(c=><option key={c} value={c}>{c} — {CURRENCY_NAMES[c]}</option>)}
+                </optgroup>
+                <optgroup label="All Currencies">
+                  {REST.map(c=><option key={c} value={c}>{c} — {CURRENCY_NAMES[c]}</option>)}
+                </optgroup>
+              </select>
+            </div>
           </div>
         </div>
 
-        <div style={{background: positive?'#f0fdf4':'#fef2f2',borderRadius:14,padding:24,textAlign:'center',marginBottom:16,boxShadow:'0 2px 12px rgba(0,0,0,0.06)'}}>
-          <div style={{fontSize:13,fontWeight:600,color:'#6b7280',marginBottom:4}}>TOTAL ROI</div>
-          <div style={{fontSize:52,fontWeight:900,color: positive?'#059669':'#dc2626'}}>{fmtPct(roi)}</div>
-          <div style={{fontSize:15,color: positive?'#059669':'#dc2626',fontWeight:700}}>{positive?'+':''}{fmt(profit)} {positive?'profit':'loss'}</div>
+        <div style={{background:'linear-gradient(135deg,#e0f2fe,#bae6fd)',borderRadius:14,padding:24,textAlign:'center',marginBottom:16}}>
+          <div style={{fontSize:13,color:'#075985',marginBottom:6}}>{Number(amount).toLocaleString()} {from} =</div>
+          <div style={{fontSize:48,fontWeight:900,color:'#0284c7',margin:'4px 0',lineHeight:1.1}}>
+            {fmtResult(result, to)}
+          </div>
+          <div style={{fontSize:13,color:'#0369a1',marginTop:8,fontWeight:600}}>{to} — {CURRENCY_NAMES[to]}</div>
+          <div style={{display:'flex',gap:20,justifyContent:'center',marginTop:12,fontSize:13}}>
+            <div style={{color:'#0369a1'}}>1 {from} = {rate.toFixed(4)} {to}</div>
+            <div style={{color:'#0369a1'}}>1 {to} = {reverseRate.toFixed(4)} {from}</div>
+          </div>
         </div>
 
-        <div style={{background:'#fff',borderRadius:14,padding:20,boxShadow:'0 2px 12px rgba(0,0,0,0.06)'}}>
-          {[
-            ['Initial Investment', fmt(inv)],
-            ['Final Value (before fees)', fmt(fin)],
-            ['Fees / Transaction Costs', fee > 0 ? '-'+fmt(fee) : '$0'],
-            ['Net Final Value', fmt(netFinal)],
-            ['Net Profit / Loss', (positive?'+':'-')+fmt(profit)],
-            ['Total ROI', fmtPct(roi)],
-            ['Annualised Return (CAGR)', fmtPct(annualised)+' / yr'],
-          ].map(([l,v])=>(
-            <div key={l} style={{display:'flex',justifyContent:'space-between',padding:'9px 0',borderBottom:'1px solid #f0f0f0',fontSize:14}}>
-              <span style={{color:'#6b7280'}}>{l}</span>
-              <strong style={{color: l.includes('Loss')||l.includes('Fees')&&fee>0?'#dc2626':l.includes('ROI')||l.includes('Profit')||l.includes('CAGR')?positive?'#059669':'#dc2626':'#1a1a2e'}}>{v}</strong>
-            </div>
-          ))}
+        <div style={{background:'#fff',borderRadius:14,padding:20,boxShadow:'0 2px 12px rgba(0,0,0,0.06)',marginBottom:16}}>
+          <div style={{fontWeight:700,fontSize:13,color:'#374151',marginBottom:12}}>Quick Reference — {from} to common currencies</div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+            {POPULAR.filter(c=>c!==from).map(c=>(
+              <div key={c} style={{background:'#f8faff',borderRadius:8,padding:'10px 12px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                <span style={{fontSize:13,color:'#6b7280',fontWeight:600}}>{c}</span>
+                <span style={{fontSize:14,fontWeight:700,color:'#1a1a2e'}}>{fmtResult(convert(Number(amount)||0,from,c),c)}</span>
+              </div>
+            ))}
+          </div>
         </div>
-        <div style={{background:'#ecfeff',borderRadius:12,padding:16,marginTop:16,fontSize:13,color:'#0e7490',lineHeight:1.6}}>
-          <strong>CAGR</strong> (Compound Annual Growth Rate) is the annualised ROI — useful when comparing investments held for different time periods.
+
+        <div style={{background:'#f0f9ff',borderRadius:12,padding:16,fontSize:13,color:'#0369a1',lineHeight:1.6}}>
+          <strong>Disclaimer:</strong> Rates are indicative mid-market reference rates and may differ from rates offered by banks or money transfer services. For large transactions, always check with your provider. Rates last updated mid-2025.
         </div>
       </div>
     </div>
   );
 }
+
 ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 //]]>
 </script>
