@@ -1,3 +1,4 @@
 User-agent: *
 Allow: /
+
 Sitemap: https://currency-converter.tabutility.com/sitemap.xml
